@@ -22,7 +22,9 @@ def collect_chunk(args):
             e_imgs.append(env.render()); e_props.append(proprio(obs)); e_goals.append(goal_vec(obs))
             a = ex.act(obs); e_acts.append(a)
             obs, r, term, trunc, info = env.step(a)
-            if info["is_success"] >= 1 and ex.phase == 3 and t > 5: break   # early exit: goal reached, save the remaining budget
+            # NO early exit: run the full horizon so "hold the cube at the goal" is in the data. Without it the policy
+            # reaches the goal (~98% of episodes) and then drifts away (88%), because it never saw a terminal frame.
+            if term or trunc: break
         if info["is_success"] < 1:
             rejected += 1; continue
         n = len(e_acts)

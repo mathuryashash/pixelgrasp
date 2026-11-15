@@ -9,10 +9,14 @@ import numpy as np
 from .env import make_env, MAX_STEPS
 
 
-def load(data_dir):
+def load(data_dir, max_episodes=None):
+    """Load shards in order until max_episodes are present (the full set is ~7 GB uint8; never load it all for a check)."""
     shards = sorted(glob.glob(os.path.join(data_dir, "shard_*.npz")))
-    d = [np.load(s) for s in shards]
-    return {k: np.concatenate([x[k] for x in d]) for k in d[0].files}
+    parts, n_eps = [], 0
+    for s in shards:
+        x = np.load(s); parts.append({k: x[k] for k in x.files}); n_eps += len(np.unique(x["episode"]))
+        if max_episodes and n_eps >= max_episodes: break
+    return {k: np.concatenate([p[k] for p in parts]) for k in parts[0]}
 
 
 def replay_episode(env, seed: int, acts: np.ndarray) -> bool:
@@ -28,7 +32,8 @@ def replay_episode(env, seed: int, acts: np.ndarray) -> bool:
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("data_dir"); ap.add_argument("--episodes", type=int, default=20)
     a = ap.parse_args()
-    D = load(a.data_dir)
+    D = load(a.data_dir, max_episodes=a.episodes)
+    meta = json.load(open(os.path.join(a.data_dir, "meta.json")))
     eps = np.unique(D["episode"])[: a.episodes]
     env = make_env()
     ok = 0; frozen = 0
@@ -40,7 +45,7 @@ def main():
         if np.abs(np.diff(imgs.astype(np.int16), axis=0)).mean() < 0.05: frozen += 1
     img = D["img"]; cube = ((img < 60).all(-1)).mean(axis=(1, 2)); red = ((img[..., 0] > 180) & (img[..., 1] < 90) & (img[..., 2] < 90)).mean(axis=(1, 2))
     rep = {"episodes_checked": int(len(eps)), "replay_success": ok, "frozen_obs_episodes": frozen,
-           "steps_total": int(len(D["t"])), "episodes_total": int(len(np.unique(D["episode"]))),
+           "steps_total": meta["steps"], "episodes_total": meta["episodes_kept"], "stats_on_steps": int(len(D["t"])),
            "action_mean": D["action"].mean(0).round(3).tolist(), "action_std": D["action"].std(0).round(3).tolist(),
            "gripper_close_frac": float((D["action"][:, 3] < 0).mean()),
            "frames_with_cube_px": float((cube > 0).mean()), "frames_with_goal_px": float((red > 0).mean()),
