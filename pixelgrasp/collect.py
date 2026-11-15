@@ -8,27 +8,28 @@ from __future__ import annotations
 import argparse, json, os, time
 import numpy as np
 from multiprocessing import Pool
-from .env import make_env, Expert, proprio, MAX_STEPS, IMG
+from .env import make_env, Expert, proprio, goal_vec, MAX_STEPS, IMG
 
 
 def collect_chunk(args):
     seeds, img_size, shard_path = args
     env = make_env(img=img_size); ex = Expert()
-    imgs, props, acts, eps, ts, rejected = [], [], [], [], [], 0
+    imgs, props, goals, acts, eps, ts, rejected = [], [], [], [], [], [], 0
     for s in seeds:
         obs, info = env.reset(seed=s); ex.reset()
-        e_imgs, e_props, e_acts = [], [], []
+        e_imgs, e_props, e_goals, e_acts = [], [], [], []
         for t in range(MAX_STEPS):
-            e_imgs.append(env.render()); e_props.append(proprio(obs))
+            e_imgs.append(env.render()); e_props.append(proprio(obs)); e_goals.append(goal_vec(obs))
             a = ex.act(obs); e_acts.append(a)
             obs, r, term, trunc, info = env.step(a)
-            if info["is_success"] >= 1 and ex.phase == 3 and t > 5: break
+            if info["is_success"] >= 1 and ex.phase == 3 and t > 5: break   # early exit: goal reached, save the remaining budget
         if info["is_success"] < 1:
             rejected += 1; continue
         n = len(e_acts)
-        imgs += e_imgs; props += e_props; acts += e_acts; eps += [s] * n; ts += list(range(n))
+        imgs += e_imgs; props += e_props; goals += e_goals; acts += e_acts; eps += [s] * n; ts += list(range(n))
     env.close()
     np.savez_compressed(shard_path, img=np.stack(imgs).astype(np.uint8), proprio=np.stack(props).astype(np.float32),
+                        goal=np.stack(goals).astype(np.float32),
                         action=np.stack(acts).astype(np.float32), episode=np.array(eps, np.int32), t=np.array(ts, np.int16))
     return shard_path, len(set(eps)), len(acts), rejected
 

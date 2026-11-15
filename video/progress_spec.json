@@ -1,0 +1,11 @@
+{
+  "size": [1920, 1080], "fps": 30,
+  "segments": [
+    {"card": {"title": "PixelGrasp", "lines": ["A robot arm learns pick-and-place from a camera only.", "", "Run 1 of the sprint: behaviour cloning, 2,000 demos, 15 epochs", "Dev success 30%  -  run 2 (action chunking, 4,900 demos) training now"],
+              "footer": "github.com/mathuryashash/pixelgrasp  |  MuJoCo + PyTorch, RTX 4060 laptop", "seconds": 4}},
+    {"clip": "results/progress_compare.mp4"},
+    {"card": {"title": "What you just saw", "lines": ["Left: a scripted expert that reads the cube position from the simulator (100/100).", "Right: a ResNet-18 that sees ONLY a 96x96 camera frame + its own gripper pose.", "", "+ green = cube delivered to the red target within 50 steps", "- red = failure, with the reason the eval harness assigned"],
+              "footer": "Every number comes from eval.py on 100 frozen held-out scenes", "seconds": 6}},
+    {"card": {"title": "Next: run 2", "lines": ["Predict 8 future moves at once (action chunking) and re-plan every 4", "4,900 demonstrations, 20 epochs, ~70 min on the laptop GPU", "Then: ablations, failure taxonomy, README, VERIFY.md"], "seconds": 4}}
+  ]
+}

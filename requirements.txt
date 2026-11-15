@@ -1,3 +1,4 @@
+# Install torch + torchvision FIRST for your hardware; see INSTALL.md
 mujoco>=3.3
 gymnasium>=1.0
 gymnasium-robotics>=1.4
@@ -7,3 +8,4 @@ imageio-ffmpeg
 torch>=2.4
 torchvision
 pytest
+pillow

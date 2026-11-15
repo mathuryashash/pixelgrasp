@@ -10,19 +10,25 @@ from torch.utils.data import Dataset, DataLoader
 from .policy import BCPolicy, loss_fn
 from .eval import evaluate
 from .policy import BCPolicyRunner
+from .env import DEV_SEED_BASE, DEMO_SEED_BASE
 
 
 class DemoDataset(Dataset):
-    def __init__(self, data_dir, chunk, episodes=None, augment=False, max_episodes=None):
+    def __init__(self, data_dir, chunk, episodes=None, augment=False, use_goal=False):
         shards = sorted(glob.glob(os.path.join(data_dir, "shard_*.npz")))
-        d = [np.load(s) for s in shards]
-        D = {k: np.concatenate([x[k] for x in d]) for k in d[0].files}
+        parts = []
+        for s in shards:                      # filter per shard BEFORE concatenating: peak RAM = final size, not 2x
+            x = np.load(s); keep = np.isin(x["episode"], episodes) if episodes is not None else slice(None)
+            if episodes is not None and not keep.any(): continue
+            parts.append({k: x[k][keep] for k in x.files})
+        D = {k: np.concatenate([p[k] for p in parts]) for k in parts[0]}
+        del parts
         order = np.lexsort((D["t"], D["episode"]))
-        for k in D: D[k] = D[k][order]
-        all_eps = np.unique(D["episode"])
-        if episodes is not None:
-            keep = np.isin(D["episode"], episodes)
-            for k in D: D[k] = D[k][keep]
+        if not np.array_equal(order, np.arange(len(order))):
+            for k in D: D[k] = D[k][order]
+        if use_goal:
+            assert "goal" in D, "dataset has no 'goal' key; re-run collect.py"
+            D["proprio"] = np.concatenate([D["proprio"], D["goal"]], 1)
         self.img, self.proprio, self.action, self.ep, self.t = D["img"], D["proprio"], D["action"], D["episode"], D["t"]
         # index of next step within the same episode for chunk building
         n = len(self.t); self.chunk = chunk; self.augment = augment
@@ -52,20 +58,23 @@ def main():
     ap.add_argument("--epochs", type=int, default=20); ap.add_argument("--bs", type=int, default=256); ap.add_argument("--lr", type=float, default=3e-4)
     ap.add_argument("--val-eps", type=int, default=100); ap.add_argument("--max-train-eps", type=int, default=None)
     ap.add_argument("--augment", action="store_true"); ap.add_argument("--no-pretrained", action="store_true")
-    ap.add_argument("--eval-every", type=int, default=5); ap.add_argument("--eval-seeds", type=int, default=30)
+    ap.add_argument("--goal", action="store_true", help="give the policy the goal xyz (task command); cube still from pixels")
+    ap.add_argument("--eval-every", type=int, default=5); ap.add_argument("--eval-seeds", type=int, default=100)
+    ap.add_argument("--save-every", type=int, default=0, help="also keep ep_NNN.pt every N epochs (for progress videos)")
     ap.add_argument("--seed", type=int, default=0); ap.add_argument("--workers", type=int, default=0)
     a = ap.parse_args()
     torch.manual_seed(a.seed); np.random.seed(a.seed)
     dev = "cuda" if torch.cuda.is_available() else "cpu"
     os.makedirs(a.out, exist_ok=True)
     meta = json.load(open(os.path.join(a.data, "meta.json")))
+    assert meta["seed_base"] >= DEMO_SEED_BASE, f"demo seeds must start at >= {DEMO_SEED_BASE}, got {meta['seed_base']}"
     all_eps = np.arange(meta["seed_base"], meta["seed_base"] + meta["episodes_requested"])
     rng = np.random.default_rng(0); rng.shuffle(all_eps)
     val_eps, train_eps = all_eps[: a.val_eps], all_eps[a.val_eps:]
     if a.max_train_eps: train_eps = train_eps[: a.max_train_eps]
-    tr = DemoDataset(a.data, a.chunk, train_eps, augment=a.augment); va = DemoDataset(a.data, a.chunk, val_eps)
-    print(f"train {len(tr)} steps / {len(np.unique(tr.ep))} eps | val {len(va)} steps / {len(np.unique(va.ep))} eps | device {dev}")
-    model = BCPolicy(chunk=a.chunk, pretrained=not a.no_pretrained).to(dev)
+    tr = DemoDataset(a.data, a.chunk, train_eps, augment=a.augment, use_goal=a.goal); va = DemoDataset(a.data, a.chunk, val_eps, use_goal=a.goal)
+    print(f"train {len(tr)} steps / {len(np.unique(tr.ep))} eps | val {len(va)} steps / {len(np.unique(va.ep))} eps | device {dev} | goal={a.goal}")
+    model = BCPolicy(chunk=a.chunk, pretrained=not a.no_pretrained, use_goal=a.goal).to(dev)
     model.p_mean.copy_(torch.from_numpy(tr.p_mean)); model.p_std.copy_(torch.from_numpy(tr.p_std))
     opt = torch.optim.AdamW(model.parameters(), lr=a.lr, weight_decay=1e-4)
     steps = a.epochs * (len(tr) // a.bs + 1); sched = torch.optim.lr_scheduler.OneCycleLR(opt, a.lr, total_steps=steps, pct_start=0.1)
@@ -89,11 +98,12 @@ def main():
             for img, pro, act, mask in dlv:
                 pos, g = model(img.to(dev), pro.to(dev)); loss, _, _ = loss_fn(pos, g, act.to(dev), mask.to(dev)); vl += loss.item() * len(img); vn += len(img)
         row = {"epoch": ep, "train_loss": tl / n, "train_pos": tp / n, "train_grip": tg / n, "val_loss": vl / vn, "lr": sched.get_last_lr()[0], "wall_s": round(time.time() - t0)}
-        ck = {"state_dict": model.state_dict(), "chunk": a.chunk, "exec_steps": exec_steps, "args": vars(a), "epoch": ep}
+        ck = {"state_dict": model.state_dict(), "chunk": a.chunk, "exec_steps": exec_steps, "use_goal": a.goal, "args": vars(a), "epoch": ep}
         torch.save(ck, os.path.join(a.out, "last.pt"))
+        if a.save_every and ep % a.save_every == 0: torch.save(ck, os.path.join(a.out, f"ep_{ep:03d}.pt"))
         if ep % a.eval_every == 0 or ep == a.epochs:
             runner = BCPolicyRunner(os.path.join(a.out, "last.pt"), device=dev)
-            s, _ = evaluate(runner, a.eval_seeds, seed_base=5000)   # dev seeds 5000+, disjoint from eval 0..999 and demos 10000+
+            s, _ = evaluate(runner, a.eval_seeds, seed_base=DEV_SEED_BASE)
             row["dev_success"] = s["success_rate"]; row["dev_causes"] = s["causes"]
             if (s["success_rate"], -row["val_loss"]) > (best[0], -best[1]):
                 best = (s["success_rate"], row["val_loss"]); torch.save(ck, os.path.join(a.out, "best.pt"))

@@ -18,6 +18,10 @@ MAX_STEPS = 50
 CAMERA = {"distance": 0.9, "azimuth": 180.0, "elevation": -35.0, "lookat": [1.33, 0.75, 0.55]}
 PROPRIO_DIM = 5          # grip xyz + 2 finger widths
 ACTION_DIM = 4           # dx dy dz (scaled by env) + gripper (+1 open / -1 close)
+# Single source of truth for seed ranges (council finding: disjoint by construction, one place).
+EVAL_SEED_BASE = 0       # eval seeds 0..N-1 (frozen, reported numbers)
+DEV_SEED_BASE = 5000     # dev seeds 5000+ (checkpoint selection during training only)
+DEMO_SEED_BASE = 10000   # demonstration seeds 10000+ (training data)
 
 
 def make_env(seed_render: bool = True, img: int = IMG, camera: dict | None = None):
@@ -29,6 +33,18 @@ def make_env(seed_render: bool = True, img: int = IMG, camera: dict | None = Non
 def proprio(obs: dict) -> np.ndarray:
     o = obs["observation"]
     return np.concatenate([o[0:3], o[9:11]]).astype(np.float32)
+
+
+GOAL_DIM = 3
+
+
+def goal_vec(obs: dict) -> np.ndarray:
+    """The task command: where to put the cube. NOT perception (the cube position is never given to the policy)."""
+    return np.asarray(obs["desired_goal"], np.float32)
+
+
+def policy_vec(obs: dict, use_goal: bool) -> np.ndarray:
+    return np.concatenate([proprio(obs), goal_vec(obs)]) if use_goal else proprio(obs)
 
 
 def privileged(obs: dict) -> dict:

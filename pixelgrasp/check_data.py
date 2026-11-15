@@ -15,6 +15,16 @@ def load(data_dir):
     return {k: np.concatenate([x[k] for x in d]) for k in d[0].files}
 
 
+def replay_episode(env, seed: int, acts: np.ndarray) -> bool:
+    """Open-loop replay of recorded actions. render() BEFORE every step() mirrors collection exactly:
+    render() calls mj_forward, which perturbs the warm-start, so skipping it changes the physics by ~1e-4 and breaks grasps."""
+    obs, info = env.reset(seed=int(seed))
+    for a_ in acts:
+        env.render()
+        obs, r, term, trunc, info = env.step(a_)
+    return bool(info["is_success"] >= 1)
+
+
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("data_dir"); ap.add_argument("--episodes", type=int, default=20)
     a = ap.parse_args()
@@ -24,13 +34,10 @@ def main():
     ok = 0; frozen = 0
     for s in eps:
         m = D["episode"] == s; acts = D["action"][m][np.argsort(D["t"][m])]
-        obs, info = env.reset(seed=int(s))
-        for a_ in acts:
-            env.render()          # mirror collection exactly: render() calls mj_forward, which perturbs the warm-start
-            obs, r, term, trunc, info = env.step(a_)
-        ok += int(info["is_success"] >= 1)
+        ok += int(replay_episode(env, s, acts))
         imgs = D["img"][m]
-        if imgs.std(axis=0).mean() < 1.0: frozen += 1
+        # temporal variance: successive frames must differ (a static scene still has a moving gripper)
+        if np.abs(np.diff(imgs.astype(np.int16), axis=0)).mean() < 0.05: frozen += 1
     img = D["img"]; cube = ((img < 60).all(-1)).mean(axis=(1, 2)); red = ((img[..., 0] > 180) & (img[..., 1] < 90) & (img[..., 2] < 90)).mean(axis=(1, 2))
     rep = {"episodes_checked": int(len(eps)), "replay_success": ok, "frozen_obs_episodes": frozen,
            "steps_total": int(len(D["t"])), "episodes_total": int(len(np.unique(D["episode"]))),

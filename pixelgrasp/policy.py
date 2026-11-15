@@ -5,16 +5,19 @@ from __future__ import annotations
 import torch, torch.nn as nn, torch.nn.functional as F
 import torchvision
 import numpy as np
-from .env import PROPRIO_DIM, ACTION_DIM
+from .env import PROPRIO_DIM, ACTION_DIM, GOAL_DIM
 
 IMAGENET_MEAN = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
 IMAGENET_STD = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
 
 
 class BCPolicy(nn.Module):
-    def __init__(self, chunk: int = 1, pretrained: bool = True, proprio_dim: int = PROPRIO_DIM, hidden: int = 256):
+    """use_goal=False: the policy must find BOTH the cube and the red goal marker in the image.
+    use_goal=True: the goal xyz (the task command) is appended to proprio; the cube must still be found in the image."""
+    def __init__(self, chunk: int = 1, pretrained: bool = True, use_goal: bool = False, hidden: int = 256):
         super().__init__()
-        self.chunk = chunk
+        self.chunk, self.use_goal = chunk, use_goal
+        proprio_dim = PROPRIO_DIM + (GOAL_DIM if use_goal else 0)
         w = torchvision.models.ResNet18_Weights.IMAGENET1K_V1 if pretrained else None
         r = torchvision.models.resnet18(weights=w)
         self.backbone = nn.Sequential(*list(r.children())[:-1])     # -> (B, 512, 1, 1)
@@ -52,15 +55,17 @@ class BCPolicyRunner:
     """Closed-loop wrapper used by eval.py: predicts a chunk, executes `exec_steps` of it, then re-plans."""
     def __init__(self, ckpt: str, device: str = "cuda", exec_steps: int | None = None):
         ck = torch.load(ckpt, map_location=device, weights_only=False)
-        self.model = BCPolicy(chunk=ck["chunk"], pretrained=False).to(device).eval()
+        self.use_goal = ck.get("use_goal", False)
+        self.model = BCPolicy(chunk=ck["chunk"], pretrained=False, use_goal=self.use_goal).to(device).eval()
         self.model.load_state_dict(ck["state_dict"]); self.device = device
         self.exec_steps = exec_steps or ck.get("exec_steps", ck["chunk"]); self.buf = []
         self.chunk = ck["chunk"]
+        assert self.exec_steps <= self.chunk, f"cannot execute {self.exec_steps} steps from a {self.chunk}-step chunk"
 
     def reset(self): self.buf = []
 
     def act(self, obs, img):
-        from .env import proprio
+        from .env import policy_vec
         if not self.buf:
-            self.buf = list(self.model.act_chunk(img, proprio(obs), self.device)[: self.exec_steps])
+            self.buf = list(self.model.act_chunk(img, policy_vec(obs, self.use_goal), self.device)[: self.exec_steps])
         return self.buf.pop(0)
