@@ -13,4 +13,28 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y libegl1 libgl1 libosmesa6
       - run: pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
       - run: pip install -r requirements.txt
+      - name: probe mujoco enum comparison (diagnostic)
+        continue-on-error: true
+        run: |
+          python - <<'EOF'
+          import mujoco, numpy as np, gymnasium as gym, gymnasium_robotics
+          print("mujoco", mujoco.__version__, type(mujoco.mjtJoint.mjJNT_SLIDE), mujoco.mjtJoint.__mro__)
+          gym.register_envs(gymnasium_robotics)
+          env = gym.make("FetchPickAndPlace-v4", render_mode="rgb_array"); m = env.unwrapped.model
+          j = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_JOINT, "robot0:slide0"); t = m.jnt_type[j]
+          print("jnt_type", t, type(t), "== SLIDE:", t == mujoco.mjtJoint.mjJNT_SLIDE, "in:", t in (mujoco.mjtJoint.mjJNT_HINGE, mujoco.mjtJoint.mjJNT_SLIDE), "int(SLIDE)", int(mujoco.mjtJoint.mjJNT_SLIDE))
+          EOF
+      - run: python -m pytest tests -q
+  test-mujoco3:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      MUJOCO_GL: osmesa
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: sudo apt-get update && sudo apt-get install -y libegl1 libgl1 libosmesa6
+      - run: pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+      - run: pip install -r requirements.txt && pip install "mujoco<4"
       - run: python -m pytest tests -q
