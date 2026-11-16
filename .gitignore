@@ -10,5 +10,5 @@ logs_*.txt
 install_torch.log
 .pytest_cache/
 results/*.mp4
-!results/demo.mp4
+!results/showcase_1116.mp4
 !results/demo.gif

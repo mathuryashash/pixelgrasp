@@ -73,18 +73,25 @@ def wrap(d, text, f, width):
     return lines + [cur]
 
 
-def compose_row(panels, title=None, footer=None, t=None):
-    gap = 8; W = sum(p.width for p in panels) + gap * (len(panels) + 1)
+def compose_row(panels, title=None, footer=None, t=None, stack=False):
+    gap = 8
+    W = (panels[0].width + 2 * gap) if stack else sum(p.width for p in panels) + gap * (len(panels) + 1)
     ff = font(20); tmp = ImageDraw.Draw(Image.new("RGB", (1, 1)))
     flines = wrap(tmp, footer, ff, W - 2 * gap) if footer else []
     th = 70 if title else 0; fh = 12 + 26 * len(flines) if flines else 0
-    H = panels[0].height + gap * 2 + th + fh
+    body = sum(p.height for p in panels) + gap * (len(panels) - 1) if stack else panels[0].height
+    H = body + gap * 2 + th + fh
     out = Image.new("RGB", (W, H), (10, 10, 12)); d = ImageDraw.Draw(out)
     if title:
-        d.text((gap, 18), title, font=font(30, bold=True), fill=(255, 255, 255))
+        tf = font(30, bold=True)
+        tl = wrap(d, title, tf, W - 2 * gap - (120 if t is not None else 0))
+        d.text((gap, 18 if len(tl) == 1 else 4), "\n".join(tl[:2]), font=tf, fill=(255, 255, 255))
         if t is not None: d.text((W - gap - 110, 24), f"step {t:02d}/{MAX_STEPS}", font=font(20), fill=(170, 170, 170))
-    x = gap
-    for p in panels: out.paste(p, (x, th + gap)); x += p.width + gap
+    x, y = gap, th + gap
+    for p in panels:
+        out.paste(p, (x, y))
+        if stack: y += p.height + gap
+        else: x += p.width + gap
     for i, ln in enumerate(flines): d.text((gap, H - fh + 6 + 26 * i), ln, font=ff, fill=(200, 200, 200))
     return out
 
@@ -122,7 +129,7 @@ def cmd_compare(a):
             for lab, fr, oc in runs:
                 v, pi = fr[min(t, len(fr) - 1)]
                 ps.append(panel(v, pi, lab, oc if t >= len(fr) - 1 else None, t=min(t, len(fr) - 1), show_input="camera" in lab))
-            frames.append(np.asarray(compose_row(ps, title=a.title or f"PixelGrasp  |  scene seed {s}", footer=a.footer, t=t)))
+            frames.append(np.asarray(compose_row(ps, title=a.title or f"PixelGrasp  |  scene seed {s}", footer=a.footer, t=t, stack=a.stack)))
         hold(frames, frames[-1], 12)
     write(a.out, frames, fps=a.fps)
 
@@ -145,7 +152,7 @@ def cmd_progress(a):
         T = max(len(r[1]) for r in runs)
         for t in range(T):
             ps = [panel(*fr[min(t, len(fr) - 1)], lab, oc if t >= len(fr) - 1 else None, t=min(t, len(fr) - 1), show_input=False) for lab, fr, oc in runs]
-            frames.append(np.asarray(compose_row(ps, title=a.title or f"Same scene (seed {s}), policy after N epochs of training", footer=a.footer, t=t)))
+            frames.append(np.asarray(compose_row(ps, title=a.title or f"Same scene (seed {s}), policy after N epochs of training", footer=a.footer, t=t, stack=a.stack)))
         hold(frames, frames[-1], 12)
     write(a.out, frames, fps=a.fps)
 
@@ -172,6 +179,7 @@ def cmd_grid(a):
 
 
 def main():
+    global VIEW
     ap = argparse.ArgumentParser(); sub = ap.add_subparsers(dest="cmd", required=True)
     c = sub.add_parser("compare"); c.add_argument("--ckpts", nargs="*", default=[]); c.add_argument("--labels", nargs="*", default=[])
     c.add_argument("--seeds", nargs="+", default=["0", "1", "2", "3"]); c.add_argument("--out", required=True)
@@ -181,7 +189,9 @@ def main():
     g.add_argument("--seeds", nargs="+", default=["0-15"]); g.add_argument("--cols", type=int, default=4); g.add_argument("--cell", type=int, default=240); g.add_argument("--out", required=True)
     for s_ in (c, p, g):
         s_.add_argument("--fps", type=int, default=10); s_.add_argument("--device", default="cuda"); s_.add_argument("--title"); s_.add_argument("--footer")
-    a = ap.parse_args()
+        s_.add_argument("--view", type=int, default=VIEW, help="viewer panel resolution (px)")
+        s_.add_argument("--stack", action="store_true", help="stack panels vertically (9:16 / phone)")
+    a = ap.parse_args(); VIEW = a.view
     {"compare": cmd_compare, "progress": cmd_progress, "grid": cmd_grid}[a.cmd](a)
 
 

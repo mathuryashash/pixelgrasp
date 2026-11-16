@@ -25,8 +25,8 @@ def font(size, bold=False):
 
 def card(spec, size):
     W, H = size; im = Image.new("RGB", size, BG); d = ImageDraw.Draw(im)
-    s = W / 1920
-    y = H * 0.22
+    s = min(W, H) / 1080          # same text size on 1920x1080 and 1080x1920
+    y = H * (0.22 if W >= H else 0.30)
     tf = font(int(72 * s), True)
     for line in spec["title"].split("\n"):
         d.text(((W - d.textlength(line, font=tf)) / 2, y), line, font=tf, fill=FG); y += int(90 * s)
@@ -49,7 +49,7 @@ def run(cmd):
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("--spec", required=True); ap.add_argument("--out", required=True)
-    ap.add_argument("--vertical", action="store_true", help="also write a 1080x1920 version (Instagram/Reels)")
+    ap.add_argument("--vertical", action="store_true", help="(legacy) also write a letterboxed 1080x1920 copy")
     a = ap.parse_args(); spec = json.load(open(a.spec))
     W, H = spec.get("size", [1920, 1080]); fps = spec.get("fps", 30)
     tmp = tempfile.mkdtemp(prefix="pg_show_"); segs = []

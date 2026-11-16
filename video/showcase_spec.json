@@ -1,0 +1,17 @@
+{
+  "size": [1920, 1080], "fps": 30,
+  "segments": [
+    {"card": {"title": "PixelGrasp", "lines": ["A robot arm learns pick-and-place from a single camera.", "", "Behaviour cloning in MuJoCo  |  2,000 scripted demos  |  45 min on a laptop GPU", "", "+ 299 / 300 held-out scenes solved (95% CI 98.1-99.9%)"],
+              "footer": "github.com/mathuryashash/pixelgrasp", "seconds": 4.5}},
+    {"clip": "results/compare_k8.mp4"},
+    {"card": {"title": "How it learns", "lines": ["A scripted expert (which can read the cube position) does the task 2,000 times.", "Every frame is saved: camera image + gripper pose + the move it made.", "A ResNet-18 is trained to copy those moves: image in, action out.", "", "Then it drives the robot itself, from pixels, on scenes it has never seen."],
+              "footer": "No cube position is ever given to the policy. It has to see it.", "seconds": 6.5}},
+    {"clip": "results/learning_k8.mp4"},
+    {"clip": "results/grid16_k8.mp4"},
+    {"card": {"title": "Results (300 frozen eval seeds)", "lines": ["+ Camera policy, action chunking k=8:  99.7%   (299/300)", "+ Camera policy, single-step k=1:  99.0%   (297/300)", "Scripted expert with ground truth:  100%", "Do nothing / random:  3.7%", "", "- Camera shifted 3 / 6 / 10 degrees:  91% / 73% / 55%  (not trained for this)"],
+              "footer": "Every number is produced by eval.py; commands in VERIFY.md", "seconds": 7}},
+    {"card": {"title": "What went wrong first", "lines": ["Run 1  30%:  the red goal dot is 17 pixels, its height is unreadable from one camera", "Run 2   1%:  action chunking averaged the ambiguity away", "Run 3  19%:  reached the goal 98% of the time, then drifted off", "", "Fix: give the policy the target as a command, record the hold phase.", "The cube is still found from pixels alone."],
+              "footer": "Failure taxonomy per episode: never reached / never grasped / dropped / misplaced", "seconds": 7.5}},
+    {"card": {"title": "PixelGrasp", "lines": ["MuJoCo  +  Gymnasium-Robotics  +  PyTorch", "Tests, eval harness, failure taxonomy, reproducible commands", "", "Yashash Mathur  |  github.com/mathuryashash/pixelgrasp"], "seconds": 4}}
+  ]
+}

@@ -31,13 +31,13 @@ class ExpertPolicy:
     def act(self, obs, img): return self.e.act(obs)
 
 
-def load_policy(name: str, ckpt: str | None, device: str = "cuda"):
+def load_policy(name: str, ckpt: str | None, device: str = "cuda", exec_steps: int | None = None):
     if name == "expert": return ExpertPolicy()
     if name == "zero": return ZeroPolicy()
     if name == "random": return RandomPolicy()
     if name == "bc":
         from .policy import BCPolicyRunner
-        return BCPolicyRunner(ckpt, device=device)
+        return BCPolicyRunner(ckpt, device=device, exec_steps=exec_steps)
     raise ValueError(name)
 
 
@@ -95,15 +95,16 @@ def main():
     ap.add_argument("--out", required=True); ap.add_argument("--video"); ap.add_argument("--video-eps", type=int, default=4)
     ap.add_argument("--device", default="cuda"); ap.add_argument("--tag", default="")
     ap.add_argument("--camera-shift", type=float, default=0.0, help="deg added to azimuth AND elevation (robustness test)")
+    ap.add_argument("--exec-steps", type=int, default=None, help="override how many chunk steps run before re-planning (open-loop = chunk)")
     a = ap.parse_args()
     cam = None
     if a.camera_shift:
         from .env import CAMERA
         cam = dict(CAMERA); cam["azimuth"] += a.camera_shift; cam["elevation"] += a.camera_shift
-    pol = load_policy(a.policy, a.ckpt, a.device)
+    pol = load_policy(a.policy, a.ckpt, a.device, exec_steps=a.exec_steps)
     t0 = time.time()
     summary, rows = evaluate(pol, a.seeds, a.seed_base, a.video, a.video_eps, camera=cam)
-    summary.update({"policy": a.policy, "ckpt": a.ckpt, "tag": a.tag, "camera_shift": a.camera_shift, "wall_s": round(time.time() - t0, 1)})
+    summary.update({"policy": a.policy, "ckpt": a.ckpt, "tag": a.tag, "camera_shift": a.camera_shift, "exec_steps": getattr(pol, "exec_steps", None), "wall_s": round(time.time() - t0, 1)})
     os.makedirs(os.path.dirname(a.out) or ".", exist_ok=True)
     json.dump({"summary": summary, "episodes": rows}, open(a.out, "w"), indent=1)
     with open(a.out.replace(".json", ".csv"), "w", newline="") as f:

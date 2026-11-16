@@ -1,0 +1,14 @@
+{
+  "size": [1080, 1920], "fps": 30,
+  "segments": [
+    {"card": {"title": "PixelGrasp", "lines": ["A robot arm learns", "pick-and-place from", "a single camera.", "", "+ 299 / 300 unseen scenes solved", "", "MuJoCo + PyTorch", "trained in 45 min on a laptop GPU"],
+              "footer": "github.com/mathuryashash/pixelgrasp", "seconds": 4}},
+    {"clip": "results/v_compare.mp4"},
+    {"card": {"title": "How", "lines": ["A scripted expert does the task", "2,000 times. Every frame is saved:", "camera image + the move it made.", "", "A ResNet-18 learns to copy it.", "Then it drives the robot itself,", "from pixels, on new scenes."], "seconds": 6}},
+    {"clip": "results/v_learning.mp4"},
+    {"clip": "results/v_grid.mp4"},
+    {"card": {"title": "Results", "lines": ["300 frozen eval scenes", "", "+ camera policy:  99.7%", "scripted expert:  100%", "do nothing:  3.7%", "", "- camera moved 6 deg:  73%", "(not trained for that yet)"], "footer": "every number from eval.py", "seconds": 6}},
+    {"card": {"title": "First 3 runs failed", "lines": ["30%  goal dot unreadable", "1%  chunking averaged it away", "19%  reached goal, then drifted", "", "Fixed: target given as a command,", "hold phase recorded in the demos.", "Cube still found from pixels."], "seconds": 6.5}},
+    {"card": {"title": "PixelGrasp", "lines": ["Yashash Mathur", "", "github.com/mathuryashash/pixelgrasp"], "seconds": 3.5}}
+  ]
+}
