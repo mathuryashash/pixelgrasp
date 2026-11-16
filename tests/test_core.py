@@ -31,9 +31,10 @@ def test_zero_policy_fails_and_is_classified():
 
 def test_policy_forward_shapes_and_ranges():
     m = BCPolicy(chunk=4, pretrained=False).eval()
+    assert 11.0e6 < sum(p.numel() for p in m.parameters()) < 12.0e6     # README says 11.4 M
     img = torch.randint(0, 255, (2, IMG, IMG, 3), dtype=torch.uint8); p = torch.zeros(2, PROPRIO_DIM)
     pos, g = m(img, p)
-    assert pos.shape == (2, 4, 3) and g.shape == (2, 4) and pos.abs().max() <= 1.0
+    assert pos.shape == (2, 4, 3) and g.shape == (2, 4) and pos.abs().max() <= 1.0 and g.abs().max() < 100
     a = m.act_chunk(img[0].numpy(), p[0].numpy(), "cpu"); assert a.shape == (4, 4) and set(np.unique(a[:, 3])) <= {-1.0, 1.0}
 
 

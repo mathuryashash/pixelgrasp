@@ -6,8 +6,7 @@ A robot arm learns pick-and-place **from a single camera**, in simulation, by co
 ![expert vs camera-only policy on the same scenes](results/demo.gif)
 
 *Left: the scripted expert, which reads the cube position from the simulator. Right: the learned policy, which sees only
-the 96×96 camera frame (inset), its own gripper pose, and the target position. Same scene, same steps. Green = cube
-delivered within 50 steps.*
+the 96×96 camera frame (inset), its own gripper pose, and the target position. Same scene, same 50-step budget. Green = success.*
 
 | | Success on 300 frozen eval seeds |
 |---|---|
@@ -37,13 +36,12 @@ Every number has a command: **[VERIFY.md](VERIFY.md)**. 71-second video: `result
 
 ## What went wrong before it worked
 
-Three runs failed before the configuration above, and they are the useful part:
+Three configurations failed during development; their failure modes drove the final design:
 
-1. **30%** – goal read from pixels. The target is a ~17-pixel red dot; its *height* is ambiguous from one fixed camera, so
+1. **30%** (best checkpoint, epoch 5; 20% at the end of training) – goal read from pixels. The target is a ~17-pixel red dot; its *height* is ambiguous from one fixed camera, so
    the policy lifted the cube and carried it to an average location.
-2. **1%** – same data, with action chunking. Chunking made the model average that ambiguity even more smoothly.
-3. **19%** – target given as a vector, but the demos stopped at the moment of success. The policy reached the target in
-   98% of episodes and then drifted off in 88%: "hold still at the goal" was never in the data.
+2. **1%** – same data, k=8 action chunking. Averaging over 8 future steps amplified the height ambiguity instead of smoothing it out.
+3. **19%** – target given as a vector, but the demos stopped at the moment of success. In a scratch diagnostic on 60 episodes the policy came within 5 cm of the target in 98% and then drifted off in 88% (that checkpoint was deleted when the data was re-collected; the number is not reproducible from this repo): "hold still at the goal" was never in the data.
 
 Fix: give the target as the task command (what a human would say: "put it there"), and record the full horizon so the
 hold phase is demonstrated. With both, 98–100% on dev seeds; the no-target ablation then reaches 82.7% on the eval seeds.

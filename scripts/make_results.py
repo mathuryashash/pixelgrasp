@@ -71,9 +71,9 @@ camera breaks that mapping. Camera-jitter augmentation during training is the ob
 
 | Run | Dev success | What was wrong |
 |---|---|---|
-| 1. k=1, 2k demos, goal from pixels, early-exit demos | 30% | the goal is a ~17-pixel red dot; its height is ambiguous from one camera. Failures: *misplaced* (lifted, carried to the wrong spot) |
+| 1. k=1, 2k demos, goal from pixels, early-exit demos | 30% (ep 5; 20% at ep 15) | the goal is a ~17-pixel red dot; its height is ambiguous from one camera. Failures: *misplaced* (lifted, carried to the wrong spot) |
 | 2. k=8, 4.9k demos, same data | 1% | chunking made the model average the ambiguity harder — a smoother wrong answer |
-| 3. k=1, goal given as a vector, early-exit demos | 19% | reached within 5 cm of the goal in 98% of episodes, then drifted away in 88%: the demos stopped at success, so "hold still at the goal" was never in the data |
+| 3. k=1, goal given as a vector, early-exit demos | 19% | scratch diagnostic (60 episodes, checkpoint since deleted): came within 5 cm of the goal in 98%, then drifted away in 88%. The demos stopped at success, so "hold still at the goal" was never in the data |
 | 4. goal vector + full 50-step demos | 98–100% | both fixes together |
 
 Run-1/2 numbers are from `runs/bc_k1_2k`, `runs/bc_k8_all` (dev seeds, logged in `log.json`); those checkpoints are kept but

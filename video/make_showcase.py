@@ -49,7 +49,6 @@ def run(cmd):
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("--spec", required=True); ap.add_argument("--out", required=True)
-    ap.add_argument("--vertical", action="store_true", help="(legacy) also write a letterboxed 1080x1920 copy")
     a = ap.parse_args(); spec = json.load(open(a.spec))
     W, H = spec.get("size", [1920, 1080]); fps = spec.get("fps", 30)
     tmp = tempfile.mkdtemp(prefix="pg_show_"); segs = []
@@ -77,11 +76,6 @@ def main():
     cmd += ["-c:v", "libx264", "-preset", "slow", "-crf", "17", "-pix_fmt", "yuv420p", "-movflags", "+faststart", a.out]
     os.makedirs(os.path.dirname(a.out) or ".", exist_ok=True); run(cmd)
     total = sum(durs) - X * (len(segs) - 1); print("wrote", a.out, f"{total:.1f}s")
-    if a.vertical:
-        vout = a.out.replace(".mp4", "_9x16.mp4")
-        run(["ffmpeg", "-y", "-loglevel", "error", "-i", a.out, "-vf",
-             "scale=1080:-2:flags=lanczos,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:color=#0a0a0c", "-c:v", "libx264", "-preset", "slow", "-crf", "17", "-pix_fmt", "yuv420p", "-movflags", "+faststart", vout])
-        print("wrote", vout)
 
 
 if __name__ == "__main__":

@@ -57,7 +57,7 @@ def main():
     ap.add_argument("--chunk", type=int, default=1); ap.add_argument("--exec-steps", type=int, default=None)
     ap.add_argument("--epochs", type=int, default=20); ap.add_argument("--bs", type=int, default=256); ap.add_argument("--lr", type=float, default=3e-4)
     ap.add_argument("--val-eps", type=int, default=100); ap.add_argument("--max-train-eps", type=int, default=None)
-    ap.add_argument("--augment", action="store_true"); ap.add_argument("--no-pretrained", action="store_true")
+    ap.add_argument("--augment", action="store_true")
     ap.add_argument("--goal", action="store_true", help="give the policy the goal xyz (task command); cube still from pixels")
     ap.add_argument("--eval-every", type=int, default=5); ap.add_argument("--eval-seeds", type=int, default=100)
     ap.add_argument("--save-every", type=int, default=0, help="also keep ep_NNN.pt every N epochs (for progress videos)")
@@ -74,7 +74,7 @@ def main():
     if a.max_train_eps: train_eps = train_eps[: a.max_train_eps]
     tr = DemoDataset(a.data, a.chunk, train_eps, augment=a.augment, use_goal=a.goal); va = DemoDataset(a.data, a.chunk, val_eps, use_goal=a.goal)
     print(f"train {len(tr)} steps / {len(np.unique(tr.ep))} eps | val {len(va)} steps / {len(np.unique(va.ep))} eps | device {dev} | goal={a.goal}")
-    model = BCPolicy(chunk=a.chunk, pretrained=not a.no_pretrained, use_goal=a.goal).to(dev)
+    model = BCPolicy(chunk=a.chunk, pretrained=True, use_goal=a.goal).to(dev)
     model.p_mean.copy_(torch.from_numpy(tr.p_mean)); model.p_std.copy_(torch.from_numpy(tr.p_std))
     opt = torch.optim.AdamW(model.parameters(), lr=a.lr, weight_decay=1e-4)
     steps = a.epochs * (len(tr) // a.bs + 1); sched = torch.optim.lr_scheduler.OneCycleLR(opt, a.lr, total_steps=steps, pct_start=0.1)
