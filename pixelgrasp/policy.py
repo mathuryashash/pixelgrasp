@@ -54,7 +54,7 @@ def loss_fn(pos_pred, grip_logit, action_chunk, mask):
 class BCPolicyRunner:
     """Closed-loop wrapper used by eval.py: predicts a chunk, executes `exec_steps` of it, then re-plans."""
     def __init__(self, ckpt: str, device: str = "cuda", exec_steps: int | None = None):
-        ck = torch.load(ckpt, map_location=device, weights_only=False)
+        ck = torch.load(ckpt, map_location=device, weights_only=True)
         self.use_goal = ck.get("use_goal", False)
         self.model = BCPolicy(chunk=ck["chunk"], pretrained=False, use_goal=self.use_goal).to(device).eval()
         self.model.load_state_dict(ck["state_dict"]); self.device = device
