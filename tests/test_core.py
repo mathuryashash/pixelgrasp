@@ -1,5 +1,5 @@
-import numpy as np, torch, pytest
-from pixelgrasp.env import make_env, Expert, proprio, privileged, classify_failure, PROPRIO_DIM, ACTION_DIM, MAX_STEPS, IMG
+import numpy as np, torch
+from pixelgrasp.env import make_env, proprio, privileged, classify_failure, PROPRIO_DIM, ACTION_DIM, IMG
 from pixelgrasp.policy import BCPolicy, loss_fn
 from pixelgrasp.eval import evaluate, ExpertPolicy, ZeroPolicy, wilson
 

@@ -12,7 +12,7 @@ from __future__ import annotations
 import argparse, glob, json, os, re
 import numpy as np, imageio
 from PIL import Image, ImageDraw, ImageFont
-from .env import make_env, Expert, privileged, classify_failure, MAX_STEPS, IMG, CAMERA
+from .env import make_env, privileged, classify_failure, MAX_STEPS, IMG
 from .eval import load_policy
 
 VIEW = 384      # viewer resolution per panel

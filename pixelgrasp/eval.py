@@ -11,7 +11,7 @@ from __future__ import annotations
 import argparse, json, time, csv, os
 from collections import Counter
 import numpy as np
-from .env import make_env, Expert, proprio, privileged, classify_failure, MAX_STEPS, EVAL_SEED_BASE
+from .env import make_env, Expert, privileged, classify_failure, MAX_STEPS, EVAL_SEED_BASE
 
 
 class ZeroPolicy:

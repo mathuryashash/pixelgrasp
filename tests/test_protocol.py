@@ -1,7 +1,7 @@
 """Tests tied to brief requirements the council flagged as untested: seed disjointness, chunk padding/masking at
 episode end, runner re-planning cadence, replay-renders-before-step, goal never leaks the cube position."""
 import json, os, numpy as np, torch, pytest
-from pixelgrasp.env import EVAL_SEED_BASE, DEV_SEED_BASE, DEMO_SEED_BASE, proprio, goal_vec, policy_vec, privileged, make_env, PROPRIO_DIM, GOAL_DIM
+from pixelgrasp.env import EVAL_SEED_BASE, DEV_SEED_BASE, DEMO_SEED_BASE, goal_vec, policy_vec, privileged, make_env, PROPRIO_DIM, GOAL_DIM
 from pixelgrasp.policy import BCPolicy, BCPolicyRunner
 from pixelgrasp.train import DemoDataset
 

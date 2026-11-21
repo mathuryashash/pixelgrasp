@@ -6,7 +6,7 @@ Usage: python -m pixelgrasp.check_data data/demos --episodes 20
 """
 import argparse, glob, json, os
 import numpy as np
-from .env import make_env, MAX_STEPS
+from .env import make_env
 
 
 def load(data_dir, max_episodes=None):
