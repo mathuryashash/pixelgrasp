@@ -5,7 +5,7 @@ from __future__ import annotations
 import torch, torch.nn as nn, torch.nn.functional as F
 import torchvision
 import numpy as np
-from .env import PROPRIO_DIM, ACTION_DIM, GOAL_DIM
+from .env import PROPRIO_DIM, GOAL_DIM
 
 IMAGENET_MEAN = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
 IMAGENET_STD = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
