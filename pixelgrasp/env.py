@@ -11,6 +11,33 @@ import gymnasium_robotics
 
 gym.register_envs(gymnasium_robotics)
 
+
+def _fix_joint_type_compare():
+    """On Linux with MuJoCo >= 3.12, `mjtJoint enum == numpy.int32` is False, so gymnasium-robotics 1.4.2's
+    `assert joint_type in (mjJNT_HINGE, mjJNT_SLIDE)` fails inside env.reset(). Fixed upstream (Gymnasium-Robotics
+    ea7caa5, #330) but not released; until then give its mujoco_utils plain-int joint constants (same values, so
+    behaviour matches Windows, where the comparison already works). No-op once the installed version has the fix."""
+    import inspect
+    import types
+
+    import mujoco
+    from gymnasium_robotics.utils import mujoco_utils as mu
+
+    if "int(model.jnt_type" in inspect.getsource(mu.set_joint_qpos):
+        return
+    names = ("mjJNT_FREE", "mjJNT_BALL", "mjJNT_SLIDE", "mjJNT_HINGE")
+
+    class _MujocoIntJoints:
+        mjtJoint = types.SimpleNamespace(**{n: int(getattr(mujoco.mjtJoint, n)) for n in names})
+
+        def __getattr__(self, name):
+            return getattr(mujoco, name)
+
+    mu.mujoco = _MujocoIntJoints()
+
+
+_fix_joint_type_compare()
+
 ENV_ID = "FetchPickAndPlace-v4"
 IMG = 96
 MAX_STEPS = 50
