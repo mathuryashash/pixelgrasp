@@ -67,7 +67,9 @@
       <li><h3>Learn from pixels</h3><p>A ResNet-18 learns to copy the expert from the image alone, plus the gripper's own position and the target. It predicts 8 moves at once and re-plans every 4.</p></li>
       <li><h3>Test on scenes it never saw</h3><p>Every number below comes from 300 held-out scenes. Each failure gets a label: missed the grasp, dropped it, wrong place, or timed out.</p></li>
     </ol>
-    <p class="note">The demo sends the arm back to its start pose before each new job, because training always started there. If you move the cube while the arm is mid-reach, it fails more often (about 1 in 3 works in my tests). That's a known limit, not a bug in the page.</p>
+    <p class="note">The demo sends the arm back to its start pose before each new job, because training always started there. If you move the cube while the arm is mid-reach, it fails more often (about 1 in 3 works in my tests). That's a known limit, not a bug in the page.
+      The blue drop area is bigger than the &plusmn;15&nbsp;cm square the policy trained on. In my tests it still picked the cube up from 100 of 100 random spots in that area,
+      47 of them outside the training square. At 25&nbsp;cm out it fails every time, so the area stops before that.</p>
   </section>
 
   <section id="results" class="cols">

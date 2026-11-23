@@ -3,7 +3,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import loadMujoco from "../vendor/mujoco/mujoco.js";
-import { loadFiles, FetchPickPlace, Expert } from "./fetch_env.js";
+import { loadFiles, FetchPickPlace, Expert, DRAG } from "./fetch_env.js";
 import { SimRenderer, IMG } from "./render.js";
 
 const $ = id => document.getElementById(id);
@@ -48,10 +48,11 @@ async function main() {
     new THREE.LineDashedMaterial({ color: 0xff4d4d, dashSize: 0.01, gapSize: 0.008, depthTest: false, transparent: true })));
   cubeRing.renderOrder = goalRing.renderOrder = goalStem.renderOrder = 10;
   const g0 = env.initialGripperXpos, zt = env.heightOffset - 0.0249;
-  const zone = (r, c) => helper(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(
-    [[-r, -r], [r, -r], [r, r], [-r, r]].map(([dx, dy]) => new THREE.Vector3(g0[0] + dx, g0[1] + dy, zt + 0.0008))),
-    new THREE.LineBasicMaterial({ color: c, transparent: true, opacity: 0.5 })));
-  const cubeZone = zone(0.15, 0x4cc9f0); cubeZone.visible = false;
+  const [[x0, x1], [y0, y1]] = [DRAG.x, DRAG.y];
+  const cubeZone = helper(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(
+    [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map(([dx, dy]) => new THREE.Vector3(g0[0] + dx, g0[1] + dy, zt + 0.0008))),
+    new THREE.LineBasicMaterial({ color: 0x4cc9f0, transparent: true, opacity: 0.7, depthTest: false })));
+  cubeZone.visible = false;
   const pickMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
   const cubePick = helper(new THREE.Mesh(new THREE.SphereGeometry(0.045, 12, 8), pickMat));
   const goalPick = helper(new THREE.Mesh(new THREE.SphereGeometry(0.04, 12, 8), pickMat));
@@ -92,6 +93,10 @@ async function main() {
   }
   function finishRun() {
     const ok = obs.success;
+    if (!ok && obs.obj[2] < env.heightOffset - 0.05) {     // knocked off the table: put it back so the next try is possible
+      const [x, y] = env.clampCube(env.initialGripperXpos[0] + 0.12, env.initialGripperXpos[1]); env.placeCube(x, y); obs = env.obs();
+      mode = "idle"; updateScore(); status("It knocked the cube off the table, so I put it back. Press Retry or drag it.", "bad"); return;
+    }
     if (ok) { wins++; mode = "holding"; holdAt = [...obs.grip]; status("Done. Drag the cube, or click the table to move the target.", "good"); }
     else { mode = "idle"; status(`Missed (cube ${(obs.dist * 100).toFixed(0)} cm from the target). Drag something or press Retry.`, "bad"); }
     updateScore();
@@ -155,7 +160,7 @@ async function main() {
     dragging = hits.some(h => h.object === cubePick) ? "cube" : "target";
     controls.enabled = false; canvas.setPointerCapture(e.pointerId); canvas.classList.add("grabbing");
     plane.constant = -(dragging === "cube" ? env.heightOffset : env.goal[2]);
-    if (dragging === "cube") { runId++; pending = false; buf = []; cubeZone.visible = true; status("Put the cube anywhere inside the blue square."); }
+    if (dragging === "cube") { runId++; pending = false; buf = []; cubeZone.visible = true; status("Put the cube anywhere inside the blue box."); }
   });
   canvas.addEventListener("pointermove", e => {
     setNdc(e);
