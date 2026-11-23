@@ -11,7 +11,7 @@ from __future__ import annotations
 import argparse, json, time, csv, os
 from collections import Counter
 import numpy as np
-from .env import make_env, Expert, privileged, classify_failure, MAX_STEPS, EVAL_SEED_BASE
+from .env import make_env, Expert, privileged, classify_failure, MAX_STEPS, EVAL_SEED_BASE, IMG
 
 
 class ZeroPolicy:
@@ -41,7 +41,7 @@ def load_policy(name: str, ckpt: str | None, device: str = "cuda", exec_steps: i
     raise ValueError(name)
 
 
-def run_episode(env, policy, seed: int, record: list | None = None, camera_shift: dict | None = None):
+def run_episode(env, policy, seed: int, record: list | None = None):
     obs, info = env.reset(seed=seed); policy.reset()
     goal = obs["desired_goal"].copy(); obj_t, grip_t = [], []
     t_inf = []
@@ -61,9 +61,7 @@ def run_episode(env, policy, seed: int, record: list | None = None, camera_shift
 
 def evaluate(policy, n_seeds: int = 100, seed_base: int = EVAL_SEED_BASE, video: str | None = None,
              video_eps: int = 4, camera: dict | None = None, img: int | None = None):
-    kw = {"camera": camera}
-    if img: kw["img"] = img
-    env = make_env(**kw)
+    env = make_env(camera=camera, img=img or IMG)
     rows, frames = [], []
     for i in range(n_seeds):
         rec = frames if (video and i < video_eps) else None

@@ -5,7 +5,7 @@ from __future__ import annotations
 import torch, torch.nn as nn, torch.nn.functional as F
 import torchvision
 import numpy as np
-from .env import PROPRIO_DIM, GOAL_DIM
+from .env import PROPRIO_DIM, GOAL_DIM, policy_vec
 
 IMAGENET_MEAN = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
 IMAGENET_STD = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
@@ -65,7 +65,6 @@ class BCPolicyRunner:
     def reset(self): self.buf = []
 
     def act(self, obs, img):
-        from .env import policy_vec
         if not self.buf:
             self.buf = list(self.model.act_chunk(img, policy_vec(obs, self.use_goal), self.device)[: self.exec_steps])
         return self.buf.pop(0)
