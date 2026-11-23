@@ -3,6 +3,9 @@
 A robot arm learns pick-and-place **from a single camera**, in simulation, by copying a scripted expert.
 **299 / 300** held-out scenes solved (95% CI 98.1–99.9%). Trained in 45 minutes on a laptop GPU.
 
+**Try it live:** https://mathuryashash.github.io/pixelgrasp/ shows the trained policy running in your browser (MuJoCo WebAssembly + ONNX Runtime Web).
+Drag the cube anywhere and the arm picks it up. The same policy solves 50/50 of the frozen eval scenes inside the page ([web/](web/)).
+
 ![expert vs camera-only policy on the same scenes](results/demo.gif)
 
 *Left: the scripted expert, which reads the cube position from the simulator. Right: the learned policy, which sees only

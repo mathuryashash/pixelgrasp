@@ -1,0 +1,11 @@
+{
+ "chunk": 8,
+ "exec_steps": 4,
+ "use_goal": true,
+ "parity_max_abs": [
+  1.0132789611816406e-06,
+  1.1444091796875e-05
+ ],
+ "ckpt": "goal_k8/best.pt",
+ "bytes": 45590535
+}

@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>PixelGrasp renderer bench</title>
+<script type="importmap">{ "imports": { "three": "./vendor/three/three.module.js", "three/addons/": "./vendor/three/addons/" } }</script>
+</head>
+<body style="font:13px monospace;background:#111;color:#ddd">
+<div id="out">loading…</div>
+<canvas id="c" width="96" height="96"></canvas>
+<script type="module">
+// Bench: render the 6 reference layouts with the browser renderer, return the images (base64) for comparison with
+// MuJoCo's own renders, and run the policy on both images. Exposes window.bench = {...}.
+import * as THREE from "three";
+import loadMujoco from "./vendor/mujoco/mujoco.js";
+import { loadFiles, FetchPickPlace, Expert } from "./js/fetch_env.js";
+import { SimRenderer } from "./js/render.js";
+import { Policy } from "./js/policy.js";
+const out = document.getElementById("out");
+try {
+  const mujoco = await loadMujoco();
+  const txt = async p => (await fetch(p)).text(), bin = async p => new Uint8Array(await (await fetch(p)).arrayBuffer());
+  const env = new FetchPickPlace(mujoco, await loadFiles(mujoco, txt, bin));
+  const ref = await (await fetch("assets/reference.json")).json();
+  const rref = await (await fetch("assets/render_ref.json")).json();
+  const layouts = await (await fetch("assets/eval_layouts.json")).json();
+  const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById("c"), antialias: true, preserveDrawingBuffer: true });
+  const R = new SimRenderer(env, rref, ref.camera);
+  const b64 = u8 => { let s = ""; for (let i = 0; i < u8.length; i++) s += String.fromCharCode(u8[i]); return btoa(s); };
+  window.bench = {
+    env, R, renderer, layouts,
+    render(seed) { env.reset(layouts[seed]); return b64(R.renderPolicy(renderer)); },
+    async loadPolicy() { this.policy = await Policy.load("models/pixelgrasp_k8.onnx", "models/pixelgrasp_k8.json"); return this.policy.meta; },
+    async predictOn(b64img, seed) {
+      env.reset(layouts[seed]);
+      const raw = atob(b64img), u8 = new Uint8Array(raw.length); for (let i = 0; i < raw.length; i++) u8[i] = raw.charCodeAt(i);
+      return this.policy.predict(u8, env.stateVec());
+    },
+    /** Closed-loop eval of the policy on layouts [from, to). Returns per-seed {seed, success, steps}. */
+    async evalPolicy(from, to, opts = {}) {
+      const rows = [];
+      for (let s = from; s < to; s++) {
+        let o = env.reset(layouts[s]); this.policy.reset(); let t = 0, inf = [];
+        for (; t < 50; t++) {
+          const { action, replanned } = await this.policy.act(() => R.renderPolicy(renderer), env.stateVec(o));
+          if (replanned) inf.push(this.policy.lastMs);
+          o = env.step(action);
+        }
+        rows.push({ seed: s, success: o.success ? 1 : 0, dist: +o.dist.toFixed(4), inf_ms: +(inf.reduce((a, b) => a + b, 0) / inf.length).toFixed(1) });
+      }
+      return rows;
+    },
+    expert(seed) { let o = env.reset(layouts[seed]); const e = new Expert(); for (let t = 0; t < 50; t++) o = env.step(e.act(o)); return o.success; },
+  };
+  out.textContent = "ready";
+} catch (e) { out.textContent = "ERROR " + e.stack; console.error(e); }
+</script>
+</body>
+</html>
