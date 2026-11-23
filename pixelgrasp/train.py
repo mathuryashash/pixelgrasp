@@ -7,9 +7,8 @@ from __future__ import annotations
 import argparse, glob, json, os, time
 import numpy as np, torch
 from torch.utils.data import Dataset, DataLoader
-from .policy import BCPolicy, loss_fn
+from .policy import BCPolicy, BCPolicyRunner, loss_fn
 from .eval import evaluate
-from .policy import BCPolicyRunner
 from .env import DEV_SEED_BASE, DEMO_SEED_BASE
 
 
