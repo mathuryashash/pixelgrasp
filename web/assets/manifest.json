@@ -1,0 +1,25 @@
+{
+ "meshes": [
+  "base_link_collision.stl",
+  "bellows_link_collision.stl",
+  "elbow_flex_link_collision.stl",
+  "estop_link.stl",
+  "forearm_roll_link_collision.stl",
+  "gripper_link.stl",
+  "head_pan_link_collision.stl",
+  "head_tilt_link_collision.stl",
+  "l_wheel_link_collision.stl",
+  "laser_link.stl",
+  "r_wheel_link_collision.stl",
+  "shoulder_lift_link_collision.stl",
+  "shoulder_pan_link_collision.stl",
+  "torso_fixed_link.stl",
+  "torso_lift_link_collision.stl",
+  "upperarm_roll_link_collision.stl",
+  "wrist_flex_link_collision.stl",
+  "wrist_roll_link_collision.stl"
+ ],
+ "textures": [
+  "block.png"
+ ]
+}

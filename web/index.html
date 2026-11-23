@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PixelGrasp · a robot arm that learned to pick from pixels</title>
+<meta name="description" content="Drag the cube anywhere. A camera-only robot policy, trained by behaviour cloning in MuJoCo, picks it up live in your browser.">
+<meta property="og:title" content="PixelGrasp · live robot arm demo">
+<meta property="og:description" content="Move the cube. The trained policy sees it through a 96×96 camera and picks it up, running entirely in your browser.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect x='3' y='3' width='10' height='10' rx='1' fill='%2322272e'/><circle cx='12' cy='4' r='3' fill='%23ff4d4d'/></svg>">
+<link rel="stylesheet" href="style.css">
+<script type="importmap">{ "imports": { "three": "./vendor/three/three.module.js", "three/addons/": "./vendor/three/addons/" } }</script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="./"><span class="mark" aria-hidden="true"></span>PixelGrasp</a>
+  <nav><a href="#how">How it works</a><a href="#results">Results</a><a href="https://github.com/mathuryashash/pixelgrasp">GitHub</a></nav>
+</header>
+
+<main>
+  <section class="intro">
+    <h1>Move the cube. The robot picks it up.</h1>
+    <p class="lede">The arm isn't told where the cube is. It sees one 96&times;96 camera frame at a time and decides how to move,
+      using a policy I trained from scripted demonstrations. Physics and the network both run here in your browser.</p>
+  </section>
+
+  <section class="demo" aria-label="Live demo">
+    <div class="stage">
+      <canvas id="view" aria-label="3D view of the robot arm, cube and red target. Drag the cube or the red ball."></canvas>
+      <div class="eye">
+        <canvas id="eye" width="96" height="96" aria-label="What the robot's camera sees"></canvas>
+        <span>robot's camera, 96&times;96</span>
+      </div>
+      <p id="status" role="status" aria-live="polite">Loading…</p>
+      <p class="hint">Drag the <b>dark cube</b> anywhere. Click the table to move the <b class="red">red target</b>. Drag empty space to orbit.</p>
+    </div>
+
+    <aside class="panel">
+      <div class="seg" role="group" aria-label="Who controls the arm">
+        <button data-brain="policy" aria-pressed="true">Trained policy</button>
+        <button data-brain="expert" aria-pressed="false">Scripted expert</button>
+      </div>
+      <p id="brain-note" class="note"></p>
+
+      <label class="field" for="height">Target height <span id="height-val">0 cm</span></label>
+      <input id="height" type="range" min="0" max="45" step="1" value="0">
+
+      <div class="btns">
+        <button id="shuffle">New random scene</button>
+        <button id="retry" class="ghost">Retry</button>
+      </div>
+
+      <dl class="stats">
+        <div><dt>Picked up this session</dt><dd id="score">–</dd></div>
+        <div><dt>Cube to target</dt><dd id="dist">–</dd></div>
+        <div><dt>Step</dt><dd id="steps">–</dd></div>
+        <div><dt>Thinking time per decision</dt><dd id="ms">–</dd></div>
+      </dl>
+      <p id="model" class="note small"></p>
+    </aside>
+  </section>
+
+  <section id="how" class="cols">
+    <h2>How it works</h2>
+    <ol class="steps">
+      <li><h3>Watch an expert</h3><p>A scripted controller that can read the true cube position solves the task. The policy trains on 2,000 of its runs: 100,000 camera frames, each paired with the expert's action.</p></li>
+      <li><h3>Learn from pixels</h3><p>A ResNet-18 learns to copy the expert from the image alone, plus the gripper's own position and the target. It predicts 8 moves at once and re-plans every 4.</p></li>
+      <li><h3>Test on scenes it never saw</h3><p>Every number below comes from 300 held-out scenes. Each failure gets a label: missed the grasp, dropped it, wrong place, or timed out.</p></li>
+    </ol>
+    <p class="note">The demo sends the arm back to its start pose before each new job, because training always started there. If you move the cube while the arm is mid-reach, it fails more often (about 1 in 3 works in my tests). That's a known limit, not a bug in the page.</p>
+  </section>
+
+  <section id="results" class="cols">
+    <h2>Results</h2>
+    <table>
+      <thead><tr><th>Controller</th><th>Solved</th></tr></thead>
+      <tbody>
+        <tr><td>Scripted expert (reads the true state)</td><td>300 / 300</td></tr>
+        <tr class="hl"><td>PixelGrasp, camera only, action chunk k=8</td><td>299 / 300</td></tr>
+        <tr><td>Same policy in this browser page (ONNX + MuJoCo WASM)</td><td>50 / 50</td></tr>
+        <tr><td>Doing nothing / random actions</td><td>11 / 300</td></tr>
+      </tbody>
+    </table>
+    <p class="note">The browser row uses the first 50 of the same frozen scenes. The page's renderer matches MuJoCo's to within 0.8/255 per pixel on average, so the network sees what it was trained on.</p>
+  </section>
+</main>
+
+<footer>
+  <p>Built by <a href="https://github.com/mathuryashash">Yashash Mathur</a>. Simulation: <a href="https://github.com/google-deepmind/mujoco">MuJoCo</a> (WebAssembly build) with the Fetch pick-and-place scene from <a href="https://robotics.farama.org/">Gymnasium-Robotics</a>. Inference: <a href="https://onnxruntime.ai/">ONNX Runtime Web</a>. Rendering: <a href="https://threejs.org/">three.js</a>.</p>
+</footer>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
