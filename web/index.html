@@ -68,8 +68,8 @@
       <li><h3>Test on scenes it never saw</h3><p>Every number below comes from 300 held-out scenes. Each failure gets a label: missed the grasp, dropped it, wrong place, or timed out.</p></li>
     </ol>
     <p class="note">The demo sends the arm back to its start pose before each new job, because training always started there. If you move the cube while the arm is mid-reach, it fails more often (about 1 in 3 works in my tests). That's a known limit, not a bug in the page.
-      The blue drop area is bigger than the &plusmn;15&nbsp;cm square the policy trained on. In my tests it still picked the cube up from 100 of 100 random spots in that area,
-      47 of them outside the training square. At 25&nbsp;cm out it fails every time, so the area stops before that.</p>
+      The blue drop area reaches 17&nbsp;cm from the start point, a bit past the &plusmn;15&nbsp;cm the policy trained on. On 60 random spots in that extra strip,
+      the browser version picked the cube up 60 times. At 20&nbsp;cm some target spots start failing, and at 25&nbsp;cm it fails every time, so the area stops at 17.</p>
   </section>
 
   <section id="results" class="cols">
