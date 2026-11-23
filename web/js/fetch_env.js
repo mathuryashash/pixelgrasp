@@ -4,6 +4,10 @@
 export const N_SUBSTEPS = 20;
 export const DIST_THRESHOLD = 0.05;
 export const OBJ_RANGE = 0.15, TARGET_RANGE = 0.15;
+// Where the visitor may drop the cube (offsets from the start gripper position). Training used +-15 cm.
+// Measured with the trained policy from the home pose (scratch/range_grid.py, 5 cm grid): reliable to +-20 cm,
+// except +x (away from the robot), where the table ends at +21 cm and the cube falls off. 25 cm is 0/N everywhere.
+export const DRAG = { x: [-0.20, 0.16], y: [-0.20, 0.20] };
 const INITIAL_QPOS = { "robot0:slide0": [0.405], "robot0:slide1": [0.48], "robot0:slide2": [0.0],
   "object0:joint": [1.25, 0.53, 0.4, 1.0, 0.0, 0.0, 0.0] };
 const OBJ = { BODY: 1, JOINT: 3, GEOM: 5, SITE: 6, EQUALITY: 17, ACTUATOR: 19 };
@@ -94,10 +98,10 @@ export class FetchPickPlace {
     this.mj.mj_forward(this.model, data);
   }
 
-  /** Clamp a cube position to where training put cubes: inside +-15 cm of the start gripper, >= 10 cm from it. */
-  clampCube(x, y) {
+  /** Clamp a dragged cube to the drag area (DRAG offsets around the start gripper), >= 10 cm from it. */
+  clampCube(x, y, box = DRAG) {
     const g = this.initialGripperXpos;
-    let dx = Math.min(OBJ_RANGE, Math.max(-OBJ_RANGE, x - g[0])), dy = Math.min(OBJ_RANGE, Math.max(-OBJ_RANGE, y - g[1]));
+    let dx = Math.min(box.x[1], Math.max(box.x[0], x - g[0])), dy = Math.min(box.y[1], Math.max(box.y[0], y - g[1]));
     const r = Math.hypot(dx, dy);
     if (r < 0.1) { const s = r < 1e-6 ? 0 : 0.1 / r; dx = r < 1e-6 ? 0.1 : dx * s; dy = r < 1e-6 ? 0 : dy * s; }
     return [g[0] + dx, g[1] + dy];
