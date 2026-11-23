@@ -5,9 +5,10 @@ export const N_SUBSTEPS = 20;
 export const DIST_THRESHOLD = 0.05;
 export const OBJ_RANGE = 0.15, TARGET_RANGE = 0.15;
 // Where the visitor may drop the cube (offsets from the start gripper position). Training used +-15 cm.
-// Measured with the trained policy from the home pose (scratch/range_grid.py, 5 cm grid): reliable to +-20 cm,
-// except +x (away from the robot), where the table ends at +21 cm and the cube falls off. 25 cm is 0/N everywhere.
-export const DRAG = { x: [-0.20, 0.16], y: [-0.20, 0.20] };
+// Measured with the trained policy from the home pose against a hard target grid (9 xy x 2 heights per spot, see
+// web/test/range): +-17 cm holds 17-18/18 on every edge and corner; 20 cm drops to 12-16/18; 25 cm fails outright.
+// +x (away from the robot) stays at the training edge: the table ends at +21 cm and 16 cm already drops to 14-17/18.
+export const DRAG = { x: [-0.17, 0.15], y: [-0.17, 0.17] };
 const INITIAL_QPOS = { "robot0:slide0": [0.405], "robot0:slide1": [0.48], "robot0:slide2": [0.0],
   "object0:joint": [1.25, 0.53, 0.4, 1.0, 0.0, 0.0, 0.0] };
 const OBJ = { BODY: 1, JOINT: 3, GEOM: 5, SITE: 6, EQUALITY: 17, ACTUATOR: 19 };
